@@ -1,109 +1,133 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import {
+    FaHome,
+    FaUpload,
+    FaUser,
+    FaCog,
+    FaFolder,
+    FaUsers,
+    FaBars,
+} from "react-icons/fa";
 
-const SideBar = () => {
+const SideBar = ({ onToggle }) => {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const toggleSidebar = () => {
+        setIsCollapsed(!isCollapsed);
+    };
+
+    useEffect(() => {
+        if (onToggle) {
+            onToggle(isCollapsed);
+        }
+    }, [isCollapsed, onToggle]);
+
     return (
-        <div className="w-40 min-h-screen bg-gray-900 border-r border-gray-700 p-4 fixed top-16 flex flex-col">
+        <div
+            className={`${
+                isCollapsed ? "w-20" : "w-48"
+            } min-h-screen bg-gray-900 border-r border-gray-700 p-4 fixed top-16 flex flex-col transition-all duration-75`}
+        >
+            {/* Toggle Button */}
+            <button
+                onClick={toggleSidebar}
+                className="text-white mb-6 focus:outline-none"
+            >
+                <FaBars size={20} />
+            </button>
+
             {/* Menu Items */}
-            <ul className="space-y-4 flex-1">
-                {/* Home Menu Item */}
-                <li className="">
+            <ul className="space-y-2 flex-1">
+                <li>
                     <NavLink
                         to="/"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span>Home</span>
+                        <FaHome size={20} />
+                        {!isCollapsed && <span>Home</span>}
                     </NavLink>
                 </li>
-
-                {/* Upload Video Menu Item */}
-                <li className="">
+                <li>
                     <NavLink
                         to="/upload-video"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span>Upload Video</span>
+                        <FaUpload size={20} />
+                        {!isCollapsed && <span>Upload Video</span>}
                     </NavLink>
                 </li>
-
-                {/* Other Menu Items */}
-                <li className="">
+                <li>
                     <NavLink
                         to="/admin"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span>Admin</span>
+                        <FaUser size={20} />
+                        {!isCollapsed && <span>Admin</span>}
                     </NavLink>
                 </li>
-                <li className="">
+                <li>
                     <NavLink
                         to="/profile"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span>My Content</span>
+                        <FaUser size={20} />
+                        {!isCollapsed && <span>My Content</span>}
                     </NavLink>
                 </li>
-                <li className="">
+                <li>
                     <NavLink
                         to="/collections"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span className="w-full h-full block py-2 text-center">
-                            Collections
-                        </span>
+                        <FaFolder size={20} />
+                        {!isCollapsed && <span>Collections</span>}
                     </NavLink>
                 </li>
-                <li className="">
+                <li>
                     <NavLink
                         to="/subscribers"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span className="w-full h-full block py-2 text-center">
-                            Subscribers
-                        </span>
+                        <FaUsers size={20} />
+                        {!isCollapsed && <span>Subscribers</span>}
                     </NavLink>
                 </li>
-                <li className="">
+                <li>
                     <NavLink
                         to="/change-password"
                         className={({ isActive }) =>
-                            `p-1 border border-gray-600 bg-gray-900 text-slate-100 rounded items-center hover:bg-gray-800 cursor-pointer
-                            no-underline w-full h-full block py-2 text-center ${
-                                isActive ? "bg-slate-600 bg-opacity-50 " : ""
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
                             }`
                         }
                     >
-                        <span>Settings</span>
+                        <FaCog size={20} />
+                        {!isCollapsed && <span>Settings</span>}
                     </NavLink>
                 </li>
             </ul>
