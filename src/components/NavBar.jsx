@@ -1,20 +1,40 @@
-import React, { useState } from "react";
-import { FiSearch } from "react-icons/fi"; // Import search icon
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { FiSearch } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+
+import { useDispatch, useSelector } from "react-redux";
+import { setIsLoggedIn, setUserDetails } from "../features/auth/authSlice";
 
 const NavBar = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const navigate = useNavigate();
 
-    // Check if the user is logged in
-    const isLoggedIn = localStorage.getItem("token");
+    // use auth slice to manage user state
+    const { isLoggedIn } = useSelector((state) => state.auth);
+
+    const dispatch = useDispatch();
 
     // Handle logout
-    const handleLogout = () => {
-        // Clear all localStorage items
-        localStorage.clear();
+    const handleLogout = async () => {
+        try {
+            await axios.post(
+                "http://localhost:8000/api/v1/users/logout",
+                {},
+                {
+                    withCredentials: true,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-        // Redirect to the login page
+            dispatch(setUserDetails({}));
+            dispatch(setIsLoggedIn(false));
+        } catch (error) {
+            console.error("Error logging out:", error?.response?.data?.message);
+        }
+
         navigate("/login");
     };
 

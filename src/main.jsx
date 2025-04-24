@@ -24,7 +24,8 @@ import {
     UserProfile,
     VideoCart,
 } from "./components/index.js";
-import UserContextProvider from "./context/UserContextProvider.jsx";
+import { Provider } from "react-redux";
+import { store } from "./app/store.js";
 
 const router = createBrowserRouter(
     createRoutesFromElements(
@@ -50,8 +51,8 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById("root")).render(
     <React.StrictMode>
-        <UserContextProvider>
+        <Provider store={store}>
             <RouterProvider router={router} />
-        </UserContextProvider>
+        </Provider>
     </React.StrictMode>
 );

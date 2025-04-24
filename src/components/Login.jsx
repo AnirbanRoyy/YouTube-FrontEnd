@@ -1,7 +1,8 @@
 import React, { useContext, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import UserContext from "../context/UserContext.js";
+import { useDispatch } from "react-redux";
+import { setIsLoggedIn, setUserDetails } from "../features/auth/authSlice";
 
 function LoginPage() {
     const [email, setEmail] = useState("");
@@ -10,40 +11,32 @@ function LoginPage() {
     const [errorMessage, setErrorMessage] = useState("");
     const navigate = useNavigate();
 
-    const { setUser } = useContext(UserContext);
+    const dispatch = useDispatch();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
             const response = await axios.post(
                 "http://localhost:8000/api/v1/users/login",
+                { email, username, password },
                 {
-                    email,
-                    username,
-                    password,
+                    withCredentials: true,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                 }
             );
 
-            const { accessToken } = response.data.data;
-            const { user } = response.data.data;
+            const { data } = response.data;
 
-            setUser(user);
-
-            // Store the token in localStorage or a cookie
-            localStorage.setItem("token", accessToken);
-
-            localStorage.setItem("username", user.username);
-            localStorage.setItem("email", user.email);
-            localStorage.setItem("avatar", user.avatar);
-            localStorage.setItem("fullName", user.fullName);
-            localStorage.setItem("userId", user._id);
-
-            // Navigate to the home page or dashboard
-            navigate("/");
+            if (data) {
+                dispatch(setUserDetails(data.user));
+                dispatch(setIsLoggedIn(true));
+                navigate("/");
+            }
         } catch (error) {
-            console.log(error.message);
             setErrorMessage(
-                error?.response?.data || "Failed to login. Please try again."
+                error?.response?.data?.message || "An error occurred."
             );
         }
     };

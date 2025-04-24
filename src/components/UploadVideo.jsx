@@ -1,9 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const UploadVideo = () => {
+    const { isLoggedIn } = useSelector((state) => state.auth);
+
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!isLoggedIn) {
+            navigate("/login");
+        }
+    }, [isLoggedIn, navigate]);
+
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -23,13 +33,21 @@ const UploadVideo = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (
-            !formData.title ||
-            !formData.description ||
-            !formData.videoFile ||
-            !formData.thumbnail
-        ) {
-            alert("All fields are required!");
+
+        if (!formData.title) {
+            alert("Title is required!");
+            return;
+        }
+        if (!formData.description) {
+            alert("Description is required!");
+            return;
+        }
+        if (!formData.videoFile) {
+            alert("Video file is required!");
+            return;
+        }
+        if (!formData.thumbnail) {
+            alert("Thumbnail is required!");
             return;
         }
 
@@ -42,13 +60,12 @@ const UploadVideo = () => {
         data.append("thumbnail", formData.thumbnail);
 
         try {
-            const authToken = localStorage.getItem("token");
             const response = await axios.post(
                 "http://localhost:8000/api/v1/videos/publish-video",
                 data,
                 {
+                    withCredentials: true,
                     headers: {
-                        Authorization: `Bearer ${authToken}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -56,14 +73,16 @@ const UploadVideo = () => {
 
             if (response.status === 200) {
                 alert("Video uploaded successfully!");
-                navigate("/"); // Redirect to VideoCart page
+                navigate("/admin");
             }
         } catch (error) {
             console.error("Error uploading video:", error);
-            alert("Failed to upload video. Please try again.");
+            alert(
+                error.response?.data?.message ||
+                    "Failed to upload video. Please try again."
+            );
         } finally {
             setIsUploading(false);
-            navigate("/admin")
         }
     };
 

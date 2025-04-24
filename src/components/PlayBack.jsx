@@ -42,10 +42,9 @@ const PlayBack = () => {
                 `http://localhost:8000/api/v1/comments/add-comment/${videoId}`,
                 { content: commentContent },
                 {
+                    withCredentials: true,
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        "Content-Type": "application/json",
                     },
                 }
             );
