@@ -14,10 +14,9 @@ import {
     fetchPlayBackData,
     fetchSelfVideos,
     fetchVideos,
-    ForgotPassword,
+    Settings,
     LoginPage,
     LogOut,
-    Password,
     PlayBack,
     Registration,
     UploadVideo,
@@ -33,13 +32,12 @@ const router = createBrowserRouter(
             <Route path="" element={<VideoCart />} loader={fetchVideos} />
             <Route path="delete-video" element={<DelandEditVideo />} />
             <Route path="profile" element={<UserProfile />} />
-            <Route path="change-password" element={<Password />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="upload-video" element={<UploadVideo />} />
             <Route path="admin" element={<Admin />} loader={fetchSelfVideos} />
             <Route path="login" element={<LoginPage />} />
             <Route path="logout" element={<LogOut />} />
             <Route path="registration" element={<Registration />} />
-            <Route path="forgot-password" element={<ForgotPassword />} />
             <Route
                 path="playback/:videoId"
                 element={<PlayBack />}

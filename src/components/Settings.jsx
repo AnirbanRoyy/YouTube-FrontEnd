@@ -1,18 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
-const Password = () => {
+const Settings = () => {
+    const { userDetails, isLoggedIn } = useSelector((state) => state.auth);
+
+    const navigate = useNavigate();
+
     const [currentTab, setCurrentTab] = useState("personalInfo");
-    const [currentPassword, setCurrentPassword] = useState("");
+    const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     // Personal Information state
-    const [name, setName] = useState("John Doe");
-    const [channelName, setChannelName] = useState("React Patterns");
-    const [email, setEmail] = useState("example@example.com");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
 
-    const handleUpdatePassword = () => {
-        if (!currentPassword || !newPassword || !confirmPassword) {
+    useEffect(() => {
+        if (!isLoggedIn) {
+            navigate("/login");
+        }
+    }, []);
+
+    useEffect(() => {
+        if (userDetails) {
+            setName(userDetails.fullName || "");
+            setEmail(userDetails.email || "");
+        }
+    }, [userDetails]);
+
+    const handleUpdatePassword = async () => {
+        if (!oldPassword || !newPassword || !confirmPassword) {
             alert("Please fill in all fields.");
             return;
         }
@@ -24,50 +43,80 @@ const Password = () => {
             alert("New password and confirm password do not match.");
             return;
         }
-        alert("Password updated successfully!");
-        // Logic to handle password change
+        try {
+            await axios.post(
+                "http://localhost:8000/api/v1/users/change-password",
+                {
+                    oldPassword,
+                    newPassword,
+                },
+                {
+                    withCredentials: true,
+                }
+            );
+            alert("Password updated successfully!");
+            setOldPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (error) {
+            console.error("Error updating password:", error);
+            alert(
+                error.response?.data?.message ||
+                    "Failed to update password. Please try again."
+            );
+        }
     };
 
-    const handleSavePersonalInfo = () => {
-        alert("Personal information saved!");
-        // Logic to save personal info
+    const handleSavePersonalInfo = async () => {
+        try {
+            await axios.patch(
+                "http://localhost:8000/api/v1/users/update-user-details",
+                {
+                    name,
+                    email,
+                },
+                {
+                    withCredentials: true,
+                }
+            );
+            alert("Personal information updated successfully!");
+        } catch (error) {
+            console.error("Error updating personal information:", error);
+            alert(
+                error.response?.data?.message ||
+                    "Failed to update personal information. Please try again."
+            );
+        }
     };
 
     const handleCancelPersonalInfo = () => {
-        setName("John Doe");
-        setChannelName("React Patterns");
-        setEmail("example@example.com");
+        setName(userDetails.fullName || "");
+        setEmail(userDetails.email || "");
     };
 
     return (
-        <div
-            className="min-h-screen bg-cover bg-gray-900 text-white flex justify-center items-center p-6"
-            style={{
-                backgroundImage: "url('/background.jpg')", // Ensure correct path to your background image
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-            }}
-        >
+        <div className="min-h-screen bg-gray-900 text-white flex justify-center items-center p-6">
             {/* Outer Container */}
             <div className="w-full max-w-6xl bg-black bg-opacity-50 rounded-lg p-10 pl-40 pr-30">
-                {/* Header with Avatar and Channel Info */}
+                {/* Header with Avatar and User Info */}
                 <div className="flex flex-col items-center mb-4">
-                    <div className="w-16 h-16 rounded-full mb-2 overflow-hidden">
-                        <img
-                            src="/background.jpg" // Ensure correct path to your background image
-                            alt="Background DP"
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-                    <img
-                        src="/avatar.png" // Ensure correct path to your avatar image
-                        alt="Avatar"
-                        className="w-16 h-16 rounded-full border-4 border-gray-800 mb-2"
-                    />
-                    <h1 className="text-2xl font-bold">React Patterns</h1>
-                    <p className="text-gray-400">@reactpatterns</p>
-                    <button className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
-                        View Channel
+                    <div
+                        className="w-56 h-56 rounded-full bg-cover bg-center border-4 border-gray-800 mb-2"
+                        style={{
+                            backgroundImage: `url(${
+                                userDetails.avatar || "/avatar.png"
+                            })`,
+                        }}
+                    ></div>
+                    <h1 className="text-2xl font-bold">
+                        {userDetails.fullName}
+                    </h1>
+                    <p className="text-gray-400">@{userDetails.username}</p>
+                    <button
+                        className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
+                        onClick={() => navigate("/profile")}
+                    >
+                        View Profile
                     </button>
                 </div>
 
@@ -115,19 +164,6 @@ const Password = () => {
                             </div>
                             <div className="mb-4">
                                 <label className="block mb-2 text-gray-400">
-                                    Channel Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={channelName}
-                                    onChange={(e) =>
-                                        setChannelName(e.target.value)
-                                    }
-                                    className="w-full p-3 rounded bg-gray-700 text-white"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block mb-2 text-gray-400">
                                     Email
                                 </label>
                                 <input
@@ -169,9 +205,9 @@ const Password = () => {
                                 </label>
                                 <input
                                     type="password"
-                                    value={currentPassword}
+                                    value={oldPassword}
                                     onChange={(e) =>
-                                        setCurrentPassword(e.target.value)
+                                        setOldPassword(e.target.value)
                                     }
                                     className="w-full p-3 rounded bg-gray-700 text-white"
                                 />
@@ -209,7 +245,7 @@ const Password = () => {
                             <div className="flex justify-end space-x-4">
                                 <button
                                     onClick={() => {
-                                        setCurrentPassword("");
+                                        setOldPassword("");
                                         setNewPassword("");
                                         setConfirmPassword("");
                                     }}
@@ -232,4 +268,4 @@ const Password = () => {
     );
 };
 
-export default Password;
+export default Settings;

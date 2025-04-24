@@ -133,17 +133,6 @@ const UserProfile = () => {
 
     return (
         <div className="min-h-screen py-20 px-15 bg-gray-900 text-white">
-            {/* Navbar */}
-            <div className="w-full bg-gray-800 border-b border-gray-700 flex items-center justify-between p-4 fixed top-0 z-10">
-                <div className="flex items-center space-x-2">
-                    <div className="bg-purple-500 p-2 rounded-full">
-                        <a href="/" className="text-lg font-bold text-white">
-                            Play
-                        </a>
-                    </div>
-                </div>
-            </div>
-
             {/* Profile Header */}
             <div className="relative h-48 w-full bg-gray-700 mt-16">
                 <img
@@ -157,7 +146,7 @@ const UserProfile = () => {
             </div>
 
             <div className="relative -mt-16 mx-auto max-w-7xl px-10 sm:px-6 lg:px-8">
-                <div className="bg-gray-800 rounded-lg shadow-lg px-6 py-4">
+                <div className="bg-gray-800 rounded-lg shadow-lg px-6 py-4 backdrop-blur-lg">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6">
                             <div className="w-24 h-24 rounded-full border-4 border-gray-900 overflow-hidden">

@@ -8,6 +8,7 @@ import {
     FaFolder,
     FaUsers,
     FaBars,
+    FaVideo,
 } from "react-icons/fa";
 
 const SideBar = ({ onToggle }) => {
@@ -87,7 +88,7 @@ const SideBar = ({ onToggle }) => {
                             }`
                         }
                     >
-                        <FaUser size={20} />
+                        <FaVideo size={20} />
                         {!isCollapsed && <span>My Content</span>}
                     </NavLink>
                 </li>
@@ -101,7 +102,7 @@ const SideBar = ({ onToggle }) => {
                         }
                     >
                         <FaFolder size={20} />
-                        {!isCollapsed && <span>Collections</span>}
+                        {!isCollapsed && <span>Playlists</span>}
                     </NavLink>
                 </li>
                 <li>
@@ -119,7 +120,7 @@ const SideBar = ({ onToggle }) => {
                 </li>
                 <li>
                     <NavLink
-                        to="/change-password"
+                        to="/settings"
                         className={({ isActive }) =>
                             `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
                                 isActive ? "bg-slate-600 bg-opacity-50" : ""
