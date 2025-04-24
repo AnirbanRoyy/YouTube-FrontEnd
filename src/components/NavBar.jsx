@@ -45,7 +45,7 @@ const NavBar = () => {
                 <div
                     className="h-10 w-16 rounded-full bg-cover bg-center hover:scale-110 transition-transform duration-300 shadow-lg"
                     style={{
-                        backgroundImage: `url('src/assets/logo for video hosting platform.png')`,
+                        backgroundImage: `url('src/assets/play-button.webp')`,
                     }}
                 >
                     <Link to="/" className="block h-full w-full"></Link>
