@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -33,6 +33,8 @@ const UserProfile = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [editingTweetId, setEditingTweetId] = useState(null);
     const [editingContent, setEditingContent] = useState("");
+    const [tweetsCache, setTweetsCache] = useState({});
+    const [videosCache, setVideosCache] = useState({});
 
     const navigate = useNavigate();
 
@@ -69,7 +71,11 @@ const UserProfile = () => {
         }
     }, [username, userDetails]);
 
-    const fetchTweets = async () => {
+    const fetchTweets = useCallback(async () => {
+        if (tweetsCache[channelProfile?._id]) {
+            setTweets(tweetsCache[channelProfile._id]);
+            return;
+        }
         try {
             setIsLoading(true);
             const response = await axios.get(
@@ -79,17 +85,24 @@ const UserProfile = () => {
                     withCredentials: true,
                 }
             );
-
             setTweets(response.data.data.docs || []);
+            setTweetsCache((prev) => ({
+                ...prev,
+                [channelProfile._id]: response.data.data.docs || [],
+            }));
         } catch (error) {
             console.error("Error fetching tweets:", error);
             setErrorMessage("Failed to load tweets. Please try again.");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [channelProfile?._id, tweetsCache]);
 
-    const fetchVideos = async () => {
+    const fetchVideos = useCallback(async () => {
+        if (videosCache[channelProfile?._id]) {
+            setVideos(videosCache[channelProfile._id]);
+            return;
+        }
         try {
             setIsLoading(true);
             const response = await axios.get(
@@ -100,13 +113,17 @@ const UserProfile = () => {
                 }
             );
             setVideos(response.data.data || []);
+            setVideosCache((prev) => ({
+                ...prev,
+                [channelProfile._id]: response.data.data || [],
+            }));
         } catch (error) {
             console.error("Error fetching videos:", error);
             setErrorMessage("Failed to load videos. Please try again.");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [channelProfile?._id, videosCache]);
 
     const createTweet = async () => {
         if (!newTweetContent.trim()) return;
@@ -129,6 +146,13 @@ const UserProfile = () => {
                 },
             };
             setTweets([newTweet, ...tweets]);
+            setTweetsCache((prev) => ({
+                ...prev,
+                [channelProfile._id]: [
+                    newTweet,
+                    ...(prev[channelProfile._id] || []),
+                ],
+            }));
             setNewTweetContent("");
         } catch (error) {
             console.error("Error creating tweet:", error);
@@ -154,6 +178,15 @@ const UserProfile = () => {
                             : tweet
                     )
                 );
+                setTweetsCache((prev) => ({
+                    ...prev,
+                    [channelProfile._id]: prev[channelProfile._id].map(
+                        (tweet) =>
+                            tweet._id === tweetId
+                                ? { ...tweet, content: updatedContent }
+                                : tweet
+                    ),
+                }));
                 setEditingTweetId(null); // Exit editing mode
                 setEditingContent(""); // Clear editing content
             } else {
@@ -177,6 +210,12 @@ const UserProfile = () => {
             setTweets((prevTweets) =>
                 prevTweets.filter((tweet) => tweet._id !== tweetId)
             );
+            setTweetsCache((prev) => ({
+                ...prev,
+                [channelProfile._id]: prev[channelProfile._id].filter(
+                    (tweet) => tweet._id !== tweetId
+                ),
+            }));
         } catch (error) {
             console.error("Error deleting tweet:", error);
             setErrorMessage(
@@ -226,7 +265,7 @@ const UserProfile = () => {
             }
         }
         // eslint-disable-next-line
-    }, [activeTab, channelProfile?._id]);
+    }, [activeTab, channelProfile?._id, fetchTweets, fetchVideos]);
 
     return (
         <div className="min-h-screen py-2 px-15 bg-gray-900 text-white">
