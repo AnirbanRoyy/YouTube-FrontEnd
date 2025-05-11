@@ -3,6 +3,21 @@ import { useParams, useNavigate, useLoaderData } from "react-router-dom";
 import axios from "axios";
 import { useSelector } from "react-redux";
 
+function timeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay > 0) return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
+    if (diffHr > 0) return `${diffHr} hour${diffHr > 1 ? "s" : ""} ago`;
+    if (diffMin > 0) return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
+    if (diffSec > 0) return `${diffSec} second${diffSec > 1 ? "s" : ""} ago`;
+    return "just now";
+}
+
 const PlayBack = () => {
     const navigate = useNavigate();
     const { videoId } = useParams();
@@ -176,10 +191,8 @@ const PlayBack = () => {
                                 onChange={(e) =>
                                     setCommentContent(e.target.value)
                                 }
-                                onKeyUp={(e) => {
-                                    if (e.key === "Enter") {
-                                        handleAddComment();
-                                    }
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleAddComment();
                                 }}
                                 className="w-full p-2 bg-gray-800 text-white rounded-lg"
                             />
@@ -193,55 +206,90 @@ const PlayBack = () => {
                                 {comments.map((comment) => (
                                     <div
                                         key={comment._id}
-                                        id={comment._id}
-                                        className="p-4 bg-gray-700 rounded-lg"
+                                        className="flex items-start gap-4 bg-gray-800 rounded-lg p-4 mt-4 shadow-lg"
                                     >
-                                        {editingCommentId === comment._id ? (
-                                            // Edit mode: Show input field
-                                            <div className="flex flex-col gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={editedContent}
-                                                    onChange={(e) =>
-                                                        setEditedContent(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full p-2 bg-gray-800 text-white rounded-lg"
-                                                />
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            handleUpdateComment(
-                                                                comment._id,
-                                                                editedContent
+                                        {/* Avatar */}
+                                        <img
+                                            src={
+                                                comment.userDetails?.avatar ||
+                                                "https://via.placeholder.com/40"
+                                            }
+                                            alt={
+                                                comment.userDetails?.fullName ||
+                                                "User Avatar"
+                                            }
+                                            className="w-10 h-10 rounded-full object-cover"
+                                        />
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-semibold text-white text-base">
+                                                    {comment.userDetails
+                                                        ?.fullName ||
+                                                        "User Name"}
+                                                </span>
+                                                <span className="text-gray-400 text-xs">
+                                                    •{" "}
+                                                    {comment.createdAt
+                                                        ? timeAgo(
+                                                              comment.createdAt
+                                                          )
+                                                        : ""}
+                                                </span>
+                                            </div>
+                                            {editingCommentId ===
+                                            comment._id ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={editedContent}
+                                                        onChange={(e) =>
+                                                            setEditedContent(
+                                                                e.target.value
                                                             )
                                                         }
-                                                        className="text-green-500"
-                                                    >
-                                                        Save
-                                                    </button>
-                                                    <button
-                                                        onClick={
-                                                            handleCancelEdit
-                                                        }
-                                                        className="text-red-500"
-                                                    >
-                                                        Cancel
-                                                    </button>
+                                                        onKeyDown={(e) => {
+                                                            if (
+                                                                e.key ===
+                                                                "Enter"
+                                                            )
+                                                                handleUpdateComment(
+                                                                    editingCommentId,
+                                                                    editedContent
+                                                                );
+                                                        }}
+                                                        className="w-full px-2 py-1 bg-gray-700 text-white rounded"
+                                                    />
+                                                    <div className="flex gap-2 mt-1">
+                                                        <button
+                                                            onClick={() =>
+                                                                handleUpdateComment(
+                                                                    comment._id,
+                                                                    editedContent
+                                                                )
+                                                            }
+                                                            className="text-green-500"
+                                                        >
+                                                            Save
+                                                        </button>
+                                                        <button
+                                                            onClick={
+                                                                handleCancelEdit
+                                                            }
+                                                            className="text-red-500"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ) : (
-                                            // View mode: Show comment content
-                                            <div>
-                                                <p className="text-white">
-                                                    {comment.content}
-                                                </p>
-                                                <div className="flex items-center space-x-4 mt-2">
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm text-gray-200 mb-2">
+                                                        {comment.content}
+                                                    </p>
                                                     {comment.userDetails
-                                                        .username ===
+                                                        ?.username ===
                                                         userDetails.username && (
-                                                        <>
+                                                        <div className="flex gap-2 mt-1">
                                                             <button
                                                                 onClick={() =>
                                                                     handleEditClick(
@@ -249,7 +297,7 @@ const PlayBack = () => {
                                                                         comment.content
                                                                     )
                                                                 }
-                                                                className="text-yellow-400"
+                                                                className="text-sm text-purple-500 hover:underline"
                                                             >
                                                                 Edit
                                                             </button>
@@ -259,15 +307,15 @@ const PlayBack = () => {
                                                                         comment._id
                                                                     )
                                                                 }
-                                                                className="text-red-500"
+                                                                className="text-sm text-red-500 hover:underline"
                                                             >
                                                                 Delete
                                                             </button>
-                                                        </>
+                                                        </div>
                                                     )}
-                                                </div>
-                                            </div>
-                                        )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

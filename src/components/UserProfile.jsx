@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -117,7 +117,17 @@ const UserProfile = () => {
                     withCredentials: true,
                 }
             );
-            setTweets([response.data.data, ...tweets]);
+            // Ensure the new tweet has the owner field populated like other tweets
+            const newTweet = {
+                ...response.data.data,
+                owner: {
+                    _id: userDetails._id,
+                    fullName: userDetails.fullName,
+                    avatar: userDetails.avatar,
+                    username: userDetails.username,
+                },
+            };
+            setTweets([newTweet, ...tweets]);
             setNewTweetContent("");
         } catch (error) {
             console.error("Error creating tweet:", error);
@@ -127,22 +137,27 @@ const UserProfile = () => {
 
     const updateTweet = async (tweetId, updatedContent) => {
         try {
-            await axios.patch(
+            const response = await axios.patch(
                 `http://localhost:8000/api/v1/tweets/update-tweet/${tweetId}`,
                 { content: updatedContent },
                 {
                     withCredentials: true,
                 }
             );
-            setTweets((prevTweets) =>
-                prevTweets.map((tweet) =>
-                    tweet._id === tweetId
-                        ? { ...tweet, content: updatedContent }
-                        : tweet
-                )
-            );
-            setEditingTweetId(null); // Exit editing mode
-            setEditingContent(""); // Clear editing content
+
+            if (response.data.success) {
+                setTweets((prevTweets) =>
+                    prevTweets.map((tweet) =>
+                        tweet._id === tweetId
+                            ? { ...tweet, content: updatedContent }
+                            : tweet
+                    )
+                );
+                setEditingTweetId(null); // Exit editing mode
+                setEditingContent(""); // Clear editing content
+            } else {
+                throw new Error("Failed to update tweet.");
+            }
         } catch (error) {
             console.error("Error updating tweet:", error);
             setErrorMessage("Failed to update tweet. Please try again.");
@@ -189,6 +204,16 @@ const UserProfile = () => {
             setErrorMessage("Failed to toggle subscription. Please try again.");
             console.log(error?.response?.data?.message);
         }
+    };
+
+    const handleEditClick = (tweetId, currentContent) => {
+        setEditingTweetId(tweetId);
+        setEditingContent(currentContent);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingTweetId(null);
+        setEditingContent("");
     };
 
     useEffect(() => {
@@ -327,6 +352,9 @@ const UserProfile = () => {
                                     onChange={(e) =>
                                         setNewTweetContent(e.target.value)
                                     }
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") createTweet();
+                                    }}
                                     className="flex-grow px-4 py-2 bg-gray-800 rounded border border-gray-700 text-white"
                                 />
                                 <button
@@ -369,38 +397,53 @@ const UserProfile = () => {
                                                     : ""}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-gray-200 mb-2">
-                                            {tweet.content}
-                                        </p>
-                                        {isOwnProfile &&
-                                            tweet.owner._id ===
-                                                channelProfile?._id && (
-                                                <div className="flex gap-2 mt-1">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingTweetId(
-                                                                tweet._id
-                                                            );
-                                                            setEditingContent(
-                                                                tweet.content
-                                                            );
-                                                        }}
-                                                        className="text-sm text-purple-500 hover:underline"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            deleteTweet(
-                                                                tweet._id
-                                                            )
-                                                        }
-                                                        className="text-sm text-red-500 hover:underline"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            )}
+                                        {editingTweetId === tweet._id ? (
+                                            <TweetEditInput
+                                                value={editingContent}
+                                                onChange={setEditingContent}
+                                                onEnter={() =>
+                                                    updateTweet(
+                                                        tweet._id,
+                                                        editingContent
+                                                    )
+                                                }
+                                            />
+                                        ) : (
+                                            <>
+                                                <p className="text-sm text-gray-200 mb-2">
+                                                    {tweet.content}
+                                                </p>
+                                                {isOwnProfile &&
+                                                    tweet.owner._id ===
+                                                        channelProfile?._id && (
+                                                        <div className="flex gap-2 mt-1">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingTweetId(
+                                                                        tweet._id
+                                                                    );
+                                                                    setEditingContent(
+                                                                        tweet.content
+                                                                    );
+                                                                }}
+                                                                className="text-sm text-purple-500 hover:underline"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    deleteTweet(
+                                                                        tweet._id
+                                                                    )
+                                                                }
+                                                                className="text-sm text-red-500 hover:underline"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -453,5 +496,40 @@ const UserProfile = () => {
         </div>
     );
 };
+
+function TweetEditInput({ value, onChange, onEnter }) {
+    const inputRef = useRef(null);
+    useEffect(() => {
+        if (inputRef.current) inputRef.current.focus();
+    }, []);
+    return (
+        <div className="flex flex-col gap-2">
+            <input
+                ref={inputRef}
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") onEnter();
+                }}
+                className="w-full px-2 py-1 bg-gray-700 text-white rounded"
+            />
+            <div className="flex gap-2 mt-1">
+                <button onClick={onEnter} className="text-green-500">
+                    Save
+                </button>
+                <button
+                    onClick={() => {
+                        onChange("");
+                        setEditingTweetId(null);
+                    }}
+                    className="text-red-500"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    );
+}
 
 export default UserProfile;
