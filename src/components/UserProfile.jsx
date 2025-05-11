@@ -1,9 +1,29 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 
+function timeAgo(dateString) {
+    const now = new Date();
+    const tweetDate = new Date(dateString);
+    const diffMs = now - tweetDate;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay > 0) return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
+    if (diffHr > 0) return `${diffHr} hour${diffHr > 1 ? "s" : ""} ago`;
+    if (diffMin > 0) return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
+    if (diffSec > 0) return `${diffSec} second${diffSec > 1 ? "s" : ""} ago`;
+    return "just now";
+}
+
 const UserProfile = () => {
+    const { isLoggedIn, userDetails } = useSelector((state) => state.auth);
+    const { channelUserName } = useParams();
+    const [channelProfile, setChannelProfile] = useState(null);
+    const [isOwnProfile, setIsOwnProfile] = useState(false);
+    const [isSubscribed, setIsSubscribed] = useState(false);
     const [activeTab, setActiveTab] = useState("tweets");
     const [tweets, setTweets] = useState([]);
     const [videos, setVideos] = useState([]);
@@ -13,7 +33,6 @@ const UserProfile = () => {
     const [editingTweetId, setEditingTweetId] = useState(null);
     const [editingContent, setEditingContent] = useState("");
 
-    const { isLoggedIn, userDetails } = useSelector((state) => state.auth);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -22,11 +41,38 @@ const UserProfile = () => {
         }
     }, [isLoggedIn, navigate]);
 
+    const username = channelUserName || userDetails?.username;
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                console.log(username);
+
+                const response = await axios.post(
+                    `http://localhost:8000/api/v1/users/get-user-channel-profile/${username}`,
+                    {},
+                    { withCredentials: true }
+                );
+
+                setChannelProfile(response.data.data);
+                setIsSubscribed(response.data.data.isSubscribed);
+                setIsOwnProfile(
+                    userDetails && response.data.data._id === userDetails._id
+                );
+            } catch (error) {
+                setErrorMessage("Failed to load channel profile.");
+            }
+        };
+        if (userDetails) {
+            fetchProfile();
+        }
+    }, [username, userDetails]);
+
     const fetchTweets = async () => {
         try {
             setIsLoading(true);
             const response = await axios.get(
-                `http://localhost:8000/api/v1/tweets/get-all-tweets/${userDetails._id}`,
+                `http://localhost:8000/api/v1/tweets/get-all-tweets/${channelProfile?._id}`,
                 {
                     params: { page: 1, limit: 10 },
                     withCredentials: true,
@@ -46,8 +92,9 @@ const UserProfile = () => {
         try {
             setIsLoading(true);
             const response = await axios.get(
-                "http://localhost:8000/api/v1/videos/get-self-videos",
+                `http://localhost:8000/api/v1/videos/get-self-videos`,
                 {
+                    params: { userId: channelProfile?._id },
                     withCredentials: true,
                 }
             );
@@ -123,21 +170,54 @@ const UserProfile = () => {
         }
     };
 
-    useEffect(() => {
-        if (activeTab === "tweets") {
-            fetchTweets();
-        } else if (activeTab === "videos") {
-            fetchVideos();
+    const handleToggleSubscription = async () => {
+        try {
+            const response = await axios.patch(
+                `http://localhost:8000/api/v1/subscriptions/toggle-subscription/${userDetails._id}`,
+                {}, // empty data payload
+                { withCredentials: true }
+            );
+            if (typeof response.data.isSubscribed === "boolean") {
+                setIsSubscribed(response.data.isSubscribed);
+            } else if (typeof response.data.data?.isSubscribed === "boolean") {
+                setIsSubscribed(response.data.data.isSubscribed);
+            } else {
+                setIsSubscribed((prev) => !prev); // fallback toggle
+            }
+            console.log(response.data.data);
+        } catch (error) {
+            setErrorMessage("Failed to toggle subscription. Please try again.");
+            console.log(error?.response?.data?.message);
         }
-    }, [activeTab]);
+    };
+
+    useEffect(() => {
+        if (!isLoading && channelProfile?._id) {
+            if (activeTab === "tweets") {
+                fetchTweets();
+            } else if (activeTab === "videos") {
+                fetchVideos();
+            }
+        }
+        // eslint-disable-next-line
+    }, [activeTab, channelProfile?._id]);
 
     return (
-        <div className="min-h-screen py-20 px-15 bg-gray-900 text-white">
+        <div className="min-h-screen py-2 px-15 bg-gray-900 text-white">
             {/* Profile Header */}
-            <div className="relative h-48 w-full bg-gray-700 mt-16">
+            <div
+                className="relative h-60 w-full bg-gray-700 mt-16 cursor-pointer"
+                onClick={() =>
+                    navigate(
+                        `/profile/${
+                            channelProfile?.username || channelProfile?._id
+                        }`
+                    )
+                }
+            >
                 <img
                     src={
-                        userDetails.coverImage ||
+                        channelProfile?.coverImage ||
                         "https://via.placeholder.com/1500x300"
                     }
                     alt="Cover"
@@ -148,33 +228,55 @@ const UserProfile = () => {
             <div className="relative -mt-16 mx-auto max-w-7xl px-10 sm:px-6 lg:px-8">
                 <div className="bg-gray-800 rounded-lg shadow-lg px-6 py-4 backdrop-blur-lg">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-6">
+                        <div
+                            className="flex items-center space-x-6 cursor-pointer"
+                            onClick={() =>
+                                navigate(
+                                    `/profile/${
+                                        channelProfile?.username ||
+                                        channelProfile?._id
+                                    }`
+                                )
+                            }
+                        >
                             <div className="w-24 h-24 rounded-full border-4 border-gray-900 overflow-hidden">
                                 <img
                                     src={
-                                        userDetails.avatar ||
+                                        channelProfile?.avatar ||
                                         "https://via.placeholder.com/150"
                                     }
-                                    alt={userDetails.fullName || "User Avatar"}
+                                    alt={
+                                        channelProfile?.fullName ||
+                                        "User Avatar"
+                                    }
                                     className="h-full w-full object-cover"
                                 />
                             </div>
                             <div>
                                 <h1 className="text-2xl font-semibold">
-                                    {userDetails.fullName || "User Name"}
+                                    {channelProfile?.fullName || "User Name"}
                                 </h1>
                                 <p className="text-gray-400">
-                                    @{userDetails.username || "username"}
+                                    @{channelProfile?.username || "username"}
                                 </p>
                                 <p className="text-sm text-gray-400">
-                                    {userDetails.watchHistory?.length || 0}{" "}
+                                    {channelProfile?.watchHistory?.length || 0}{" "}
                                     Videos Watched
                                 </p>
                             </div>
                         </div>
-                        <button className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-white">
-                            Subscribe
-                        </button>
+                        {!isOwnProfile && (
+                            <button
+                                className={`${
+                                    isSubscribed
+                                        ? "bg-gray-600"
+                                        : "bg-purple-600 hover:bg-purple-700"
+                                } px-4 py-2 rounded text-white`}
+                                onClick={handleToggleSubscription}
+                            >
+                                {isSubscribed ? "Subscribed" : "Subscribe"}
+                            </button>
+                        )}
                     </div>
 
                     <div className="mt-6 flex space-x-4">
@@ -216,76 +318,64 @@ const UserProfile = () => {
                 {activeTab === "tweets" && (
                     <div>
                         <h2 className="text-xl font-semibold">Tweets</h2>
-                        <div className="flex mt-4 space-x-4">
-                            <input
-                                type="text"
-                                placeholder="Write a new tweet..."
-                                value={newTweetContent}
-                                onChange={(e) =>
-                                    setNewTweetContent(e.target.value)
-                                }
-                                className="flex-grow px-4 py-2 bg-gray-800 rounded border border-gray-700 text-white"
-                            />
-                            <button
-                                onClick={createTweet}
-                                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-white"
-                            >
-                                Tweet
-                            </button>
-                        </div>
+                        {isOwnProfile && (
+                            <div className="flex mt-4 space-x-4">
+                                <input
+                                    type="text"
+                                    placeholder="Write a new tweet..."
+                                    value={newTweetContent}
+                                    onChange={(e) =>
+                                        setNewTweetContent(e.target.value)
+                                    }
+                                    className="flex-grow px-4 py-2 bg-gray-800 rounded border border-gray-700 text-white"
+                                />
+                                <button
+                                    onClick={createTweet}
+                                    className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-white"
+                                >
+                                    Tweet
+                                </button>
+                            </div>
+                        )}
                         {isLoading && <p>Loading tweets...</p>}
                         {!isLoading &&
                             tweets.map((tweet) => (
                                 <div
                                     key={tweet._id}
-                                    className="bg-gray-800 rounded-lg p-4 mt-4 shadow-lg"
+                                    className="flex items-start gap-4 bg-gray-800 rounded-lg p-4 mt-4 shadow-lg"
                                 >
-                                    <div className="flex items-center justify-between">
-                                        {editingTweetId === tweet._id ? (
-                                            <div className="flex-grow">
-                                                <input
-                                                    type="text"
-                                                    value={editingContent}
-                                                    onChange={(e) =>
-                                                        setEditingContent(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full px-2 py-1 bg-gray-700 text-white rounded"
-                                                />
-                                                <div className="flex gap-2 mt-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            updateTweet(
-                                                                tweet._id,
-                                                                editingContent
-                                                            )
-                                                        }
-                                                        className="text-green-500"
-                                                    >
-                                                        Save
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingTweetId(
-                                                                null
-                                                            );
-                                                            setEditingContent(
-                                                                ""
-                                                            );
-                                                        }}
-                                                        className="text-red-500"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm">
-                                                    {tweet.content}
-                                                </p>
-                                                <div className="flex gap-2">
+                                    {/* Avatar */}
+                                    <img
+                                        src={
+                                            tweet.owner?.avatar ||
+                                            "https://via.placeholder.com/40"
+                                        }
+                                        alt={
+                                            tweet.owner?.fullName ||
+                                            "User Avatar"
+                                        }
+                                        className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-semibold text-white text-base">
+                                                {tweet.owner?.fullName ||
+                                                    "User Name"}
+                                            </span>
+                                            <span className="text-gray-400 text-xs">
+                                                •{" "}
+                                                {tweet.createdAt
+                                                    ? timeAgo(tweet.createdAt)
+                                                    : ""}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-200 mb-2">
+                                            {tweet.content}
+                                        </p>
+                                        {isOwnProfile &&
+                                            tweet.owner._id ===
+                                                channelProfile?._id && (
+                                                <div className="flex gap-2 mt-1">
                                                     <button
                                                         onClick={() => {
                                                             setEditingTweetId(
@@ -310,8 +400,7 @@ const UserProfile = () => {
                                                         Delete
                                                     </button>
                                                 </div>
-                                            </>
-                                        )}
+                                            )}
                                     </div>
                                 </div>
                             ))}
@@ -331,7 +420,10 @@ const UserProfile = () => {
                             {videos.map((video) => (
                                 <div
                                     key={video._id}
-                                    className="bg-gray-800 rounded-lg shadow-lg overflow-hidden"
+                                    className="bg-gray-800 rounded-lg shadow-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-purple-500"
+                                    onClick={() =>
+                                        navigate(`/playback/${video._id}`)
+                                    }
                                 >
                                     <img
                                         src={video.thumbnail}

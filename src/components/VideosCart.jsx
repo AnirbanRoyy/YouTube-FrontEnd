@@ -17,7 +17,7 @@ const VideoCart = () => {
         <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center py-10 px-5">
             <div className="flex flex-col items-center w-full max-w-7xl">
                 <h1 className="text-3xl font-bold mb-10 text-center">Videos</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
                     {videos.map((video) => (
                         <div
                             key={video._id}

@@ -32,6 +32,7 @@ const router = createBrowserRouter(
             <Route path="" element={<VideoCart />} loader={fetchVideos} />
             <Route path="delete-video" element={<DelandEditVideo />} />
             <Route path="profile" element={<UserProfile />} />
+            <Route path="profile/:channelUserName" element={<UserProfile />} />
             <Route path="settings" element={<Settings />} />
             <Route path="upload-video" element={<UploadVideo />} />
             <Route path="admin" element={<Admin />} loader={fetchSelfVideos} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLoaderData } from "react-router-dom";
 import axios from "axios";
+import { useSelector } from "react-redux";
 
 const PlayBack = () => {
     const navigate = useNavigate();
@@ -9,32 +10,29 @@ const PlayBack = () => {
     const [relatedVideos, setRelatedVideos] = useState([]);
     const [comments, setComments] = useState([]);
     const [commentContent, setCommentContent] = useState("");
-    const [editingCommentId, setEditingCommentId] = useState(null); // Track which comment is being edited
-    const [editedContent, setEditedContent] = useState(""); // Track the edited content
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editedContent, setEditedContent] = useState("");
     const videoRef = useRef(null);
 
     const { playbackVideo, videoComments, otherVideos } = useLoaderData();
+    const { userDetails, isLoggedIn } = useSelector((state) => state.auth);
 
-    // Update state when loader data changes
     useEffect(() => {
         setVideo(playbackVideo);
         setComments(videoComments);
         setRelatedVideos(otherVideos);
     }, [playbackVideo, videoComments, otherVideos]);
 
-    // Redirect to login if video data is not available
     useEffect(() => {
-        if (!playbackVideo) {
+        if (!isLoggedIn) {
             navigate("/login");
         }
-    }, [playbackVideo, navigate]);
+    }, [isLoggedIn, navigate]);
 
-    // Handle clicking on a related video
     const handleRelatedVideoClick = (relatedVideo) => {
         navigate(`/playback/${relatedVideo._id}`);
     };
 
-    // Handle adding a comment
     const handleAddComment = async () => {
         if (!commentContent) return;
         try {
@@ -43,29 +41,22 @@ const PlayBack = () => {
                 { content: commentContent },
                 {
                     withCredentials: true,
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
                 }
             );
-            setComments([response.data.data, ...comments]); // Add the new comment to the list
-            setCommentContent(""); // Clear the comment input
+            setComments([response.data.data, ...comments]);
+            setCommentContent("");
         } catch (error) {
             console.error("Error adding comment:", error);
         }
     };
 
-    // Handle updating a comment
     const handleUpdateComment = async (commentId, newContent) => {
         try {
-            const authToken = localStorage.getItem("token");
             const response = await axios.patch(
                 `http://localhost:8000/api/v1/comments/update-comment/${commentId}`,
                 { content: newContent },
                 {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                    },
+                    withCredentials: true,
                 }
             );
 
@@ -77,8 +68,8 @@ const PlayBack = () => {
                             : comment
                     )
                 );
-                setEditingCommentId(null); // Stop editing after saving
-                setEditedContent(""); // Clear the edited content
+                setEditingCommentId(null);
+                setEditedContent("");
             } else {
                 throw new Error("Failed to update comment");
             }
@@ -87,41 +78,39 @@ const PlayBack = () => {
         }
     };
 
-    // Handle deleting a comment
     const handleDeleteComment = async (commentId) => {
         try {
             await axios.post(
                 `http://localhost:8000/api/v1/comments/delete-comment/${commentId}`,
                 {},
                 {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
+                    withCredentials: true,
                 }
             );
             setComments(
                 comments.filter((comment) => comment._id !== commentId)
-            ); // Remove the deleted comment
+            );
         } catch (error) {
             console.error("Error deleting comment:", error);
         }
     };
 
-    // Handle starting the edit process
     const handleEditClick = (commentId, currentContent) => {
-        setEditingCommentId(commentId); // Set the comment being edited
-        setEditedContent(currentContent); // Set the current content for editing
+        setEditingCommentId(commentId);
+        setEditedContent(currentContent);
     };
 
-    // Handle canceling the edit process
     const handleCancelEdit = () => {
-        setEditingCommentId(null); // Stop editing
-        setEditedContent(""); // Clear the edited content
+        setEditingCommentId(null);
+        setEditedContent("");
     };
 
-    if (!video) return <div>Loading...</div>; // Show loading state while fetching video
+    if (!video)
+        return (
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <span className="loader"></span>
+            </div>
+        );
 
     return (
         <div className="min-h-screen bg-gray-950">
@@ -155,7 +144,12 @@ const PlayBack = () => {
                         </div>
 
                         {/* Channel Information */}
-                        <div className="flex items-center mt-6">
+                        <div
+                            className="flex items-center mt-6 cursor-pointer"
+                            onClick={() =>
+                                navigate(`/profile/${video.owner.username}`)
+                            }
+                        >
                             <img
                                 src={
                                     video.owner.avatar || "/default-avatar.png"
@@ -246,9 +240,7 @@ const PlayBack = () => {
                                                 <div className="flex items-center space-x-4 mt-2">
                                                     {comment.userDetails
                                                         .username ===
-                                                        localStorage.getItem(
-                                                            "username"
-                                                        ) && (
+                                                        userDetails.username && (
                                                         <>
                                                             <button
                                                                 onClick={() =>
@@ -328,30 +320,22 @@ export const fetchPlayBackData = async (videoId) => {
     let playbackVideo, videoComments, otherVideos;
 
     try {
-        const authToken = localStorage.getItem("token");
-        console.log(videoId);
-
         const response = await axios.get(
             `http://localhost:8000/api/v1/videos/get-video/${videoId}`,
             {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
+                withCredentials: true,
             }
         );
-        playbackVideo = response.data.data; // the fetched video data
+        playbackVideo = response.data.data;
     } catch (error) {
         console.error("Error fetching video:", error);
     }
 
     try {
-        const authToken = localStorage.getItem("token");
         const response = await axios.get(
             `http://localhost:8000/api/v1/comments/get-all-comments/${videoId}`,
             {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
+                withCredentials: true,
             }
         );
         videoComments = response.data.data;
@@ -364,7 +348,7 @@ export const fetchPlayBackData = async (videoId) => {
             `http://localhost:8000/api/v1/videos/get-all-videos`
         );
         const filteredVideos = response.data.data.filter(
-            (v) => v._id !== videoId // Exclude the current video
+            (v) => v._id !== videoId
         );
         otherVideos = filteredVideos;
     } catch (error) {

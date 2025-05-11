@@ -10,6 +10,7 @@ function Admin() {
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [editedVideo, setEditedVideo] = useState(null);
+    const [isLoading, setIsLoading] = useState(false); // Add loading state
 
     const { isLoggedIn } = useSelector((state) => state.auth);
 
@@ -23,6 +24,7 @@ function Admin() {
 
     const toggleStatus = async (id) => {
         try {
+            setIsLoading(true); // Start loading
             const response = await axios.patch(
                 `http://localhost:8000/api/v1/videos/toggle-publish/${id}`,
                 {},
@@ -43,12 +45,15 @@ function Admin() {
             );
         } catch (error) {
             console.error("Error toggling publish status:", error);
+        } finally {
+            setIsLoading(false); // Stop loading
         }
     };
 
     const handleDelete = async () => {
         if (selectedVideo) {
             try {
+                setIsLoading(true); // Start loading
                 await axios.post(
                     `http://localhost:8000/api/v1/videos/delete-video/${selectedVideo._id}`,
                     {},
@@ -67,6 +72,8 @@ function Admin() {
                 setShowDeletePopup(false);
             } catch (error) {
                 console.error("Error deleting video:", error.message);
+            } finally {
+                setIsLoading(false); // Stop loading
             }
         }
     };
@@ -74,6 +81,7 @@ function Admin() {
     const handleEdit = async () => {
         if (editedVideo) {
             try {
+                setIsLoading(true); // Start loading
                 const formData = new FormData();
 
                 formData.append("title", editedVideo.title);
@@ -97,8 +105,6 @@ function Admin() {
                     }
                 );
 
-                console.log("Video updated successfully:", response.data);
-
                 setVideos((prevVideos) =>
                     prevVideos.map((video) =>
                         video._id === editedVideo._id
@@ -110,25 +116,8 @@ function Admin() {
                 setShowEditModal(false);
             } catch (error) {
                 console.error("Error updating video:", error.message);
-
-                if (error.response) {
-                    console.error("Error response data:", error.response.data);
-                    console.error(
-                        "Error response status:",
-                        error.response.status
-                    );
-                    console.error(
-                        "Error response headers:",
-                        error.response.headers
-                    );
-                } else if (error.request) {
-                    console.error("No response received:", error.request);
-                } else {
-                    console.error(
-                        "Error setting up the request:",
-                        error.message
-                    );
-                }
+            } finally {
+                setIsLoading(false); // Stop loading
             }
         }
     };
@@ -136,6 +125,14 @@ function Admin() {
     const filteredVideos = videos.filter((video) =>
         video.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <span className="loader"></span>
+            </div>
+        );
+    }
 
     return (
         isLoggedIn && (

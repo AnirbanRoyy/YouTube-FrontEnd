@@ -87,7 +87,14 @@ const UploadVideo = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-900 flex flex-col relative">
+            {/* Overlay for Upload Animation */}
+            {isUploading && (
+                <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+                    <span className="loader"></span>
+                </div>
+            )}
+
             {/* Upload Video Form Section */}
             <div className="flex-grow flex items-center justify-center pt-20">
                 <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-lg shadow-md">
@@ -100,7 +107,7 @@ const UploadVideo = () => {
                                 htmlFor="title"
                                 className="block text-sm font-medium text-gray-300"
                             >
-                                Title
+                                Title <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -118,7 +125,7 @@ const UploadVideo = () => {
                                 htmlFor="description"
                                 className="block text-sm font-medium text-gray-300"
                             >
-                                Description
+                                Description <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 id="description"
@@ -135,7 +142,7 @@ const UploadVideo = () => {
                                 htmlFor="videoFile"
                                 className="block text-sm font-medium text-gray-300"
                             >
-                                Video File
+                                Video File <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="file"
@@ -152,7 +159,7 @@ const UploadVideo = () => {
                                 htmlFor="thumbnail"
                                 className="block text-sm font-medium text-gray-300"
                             >
-                                Thumbnail
+                                Thumbnail <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="file"

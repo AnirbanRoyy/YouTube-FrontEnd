@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
     FaHome,
     FaUpload,
@@ -23,6 +24,8 @@ const SideBar = ({ onToggle }) => {
             onToggle(isCollapsed);
         }
     }, [isCollapsed, onToggle]);
+
+    const { userDetails } = useSelector((state) => state.auth);
 
     return (
         <div
@@ -81,7 +84,11 @@ const SideBar = ({ onToggle }) => {
                 </li>
                 <li>
                     <NavLink
-                        to="/profile"
+                        to={
+                            userDetails?.username
+                                ? `/profile/${userDetails.username}`
+                                : "/profile"
+                        }
                         className={({ isActive }) =>
                             `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
                                 isActive ? "bg-slate-600 bg-opacity-50" : ""
