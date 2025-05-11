@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLoaderData } from "react-router-dom";
 import axios from "axios";
 import { useSelector } from "react-redux";
+import VideoCard from "./VideoCard";
 
 function timeAgo(dateString) {
     const now = new Date();
@@ -177,7 +178,7 @@ const PlayBack = () => {
                                     {video.owner.fullName || "Anonymous"}
                                 </p>
                                 <p className="text-sm text-gray-400">
-                                    {video.owner.username || "No Name"}
+                                    @{video.owner.username || "No Name"}
                                 </p>
                             </div>
                         </div>
@@ -330,30 +331,14 @@ const PlayBack = () => {
                     </h2>
                     <div className="space-y-4">
                         {relatedVideos.map((relatedVideo) => (
-                            <div
+                            <VideoCard
                                 key={relatedVideo._id}
-                                className="flex items-center cursor-pointer"
+                                video={relatedVideo}
+                                hideChannel={false}
                                 onClick={() =>
                                     handleRelatedVideoClick(relatedVideo)
                                 }
-                            >
-                                <img
-                                    src={
-                                        relatedVideo.thumbnail ||
-                                        "/default-thumbnail.jpg"
-                                    }
-                                    alt="Thumbnail"
-                                    className="w-16 h-16 rounded-md mr-4"
-                                />
-                                <div>
-                                    <p className="text-gray-300">
-                                        {relatedVideo.title}
-                                    </p>
-                                    <p className="text-gray-500 text-sm">
-                                        {relatedVideo.owner.username}
-                                    </p>
-                                </div>
-                            </div>
+                            />
                         ))}
                     </div>
                 </div>

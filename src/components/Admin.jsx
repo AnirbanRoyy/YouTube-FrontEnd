@@ -12,7 +12,7 @@ function Admin() {
     const [editedVideo, setEditedVideo] = useState(null);
     const [isLoading, setIsLoading] = useState(false); // Add loading state
 
-    const { isLoggedIn } = useSelector((state) => state.auth);
+    const { isLoggedIn, userDetails } = useSelector((state) => state.auth);
 
     const navigate = useNavigate();
 
@@ -167,7 +167,7 @@ function Admin() {
                     <div className="mb-6 text-center">
                         <h2 className="text-2xl font-semibold">
                             Welcome Back,{" "}
-                            {localStorage.getItem("fullName") || "Admin"}
+                            { userDetails.fullName || "Admin"}
                         </h2>
                         <p className="text-gray-400">
                             Seamless Video Management, Elevated Results.

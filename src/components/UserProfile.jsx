@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import VideoCard from "./VideoCard";
 
 function timeAgo(dateString) {
     const now = new Date();
@@ -461,33 +462,7 @@ const UserProfile = () => {
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
                             {videos.map((video) => (
-                                <div
-                                    key={video._id}
-                                    className="bg-gray-800 rounded-lg shadow-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-purple-500"
-                                    onClick={() =>
-                                        navigate(`/playback/${video._id}`)
-                                    }
-                                >
-                                    <img
-                                        src={video.thumbnail}
-                                        alt={video.title}
-                                        className="w-full h-40 object-cover"
-                                    />
-                                    <div className="p-4">
-                                        <h3 className="text-lg font-semibold">
-                                            {video.title}
-                                        </h3>
-                                        <p className="text-sm text-gray-400">
-                                            {video.views} views
-                                        </p>
-                                        <p className="text-sm text-gray-400">
-                                            Uploaded on{" "}
-                                            {new Date(
-                                                video.createdAt
-                                            ).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
+                                <VideoCard key={video._id} video={video} />
                             ))}
                         </div>
                     </div>
