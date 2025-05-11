@@ -13,6 +13,7 @@ import VideoCart from "./VideosCart";
 import { fetchVideos } from "./VideosCart";
 import { fetchSelfVideos } from "./Admin";
 import Settings from "./Settings";
+import Subscribers from "./Subscribers";
 
 export {
     Admin,
@@ -30,4 +31,5 @@ export {
     VideoCart,
     fetchVideos,
     fetchSelfVideos,
+    Subscribers
 };

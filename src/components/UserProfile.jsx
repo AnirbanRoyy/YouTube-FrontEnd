@@ -35,6 +35,10 @@ const UserProfile = () => {
     const [editingContent, setEditingContent] = useState("");
     const [tweetsCache, setTweetsCache] = useState({});
     const [videosCache, setVideosCache] = useState({});
+    const [subscribers, setSubscribers] = useState([]);
+    const [subscribersCache, setSubscribersCache] = useState({});
+    const [subscribedTo, setSubscribedTo] = useState([]);
+    const [subscribedToCache, setSubscribedToCache] = useState({});
 
     const navigate = useNavigate();
 
@@ -49,8 +53,6 @@ const UserProfile = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                console.log(username);
-
                 const response = await axios.post(
                     `http://localhost:8000/api/v1/users/get-user-channel-profile/${username}`,
                     {},
@@ -124,6 +126,68 @@ const UserProfile = () => {
             setIsLoading(false);
         }
     }, [channelProfile?._id, videosCache]);
+
+    const fetchSubscribers = useCallback(
+        async (force = false) => {
+            if (!force && subscribersCache[channelProfile?._id]) {
+                setSubscribers(subscribersCache[channelProfile._id]);
+                return;
+            }
+            try {
+                setIsLoading(true);
+                const response = await axios.get(
+                    `http://localhost:8000/api/v1/subscriptions/get-channel-subscribers/${channelProfile?._id}`,
+                    { withCredentials: true }
+                );
+                const subs = response.data.data || [];
+                setSubscribers(subs);
+                setSubscribersCache((prev) => ({
+                    ...prev,
+                    [channelProfile._id]: subs,
+                }));
+            } catch (error) {
+                console.log(error);
+
+                setErrorMessage(
+                    "Failed to load subscribers. Please try again."
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [channelProfile?._id, subscribersCache]
+    );
+
+    const fetchSubscribedTo = useCallback(
+        async (force = false) => {
+            if (!force && subscribedToCache[channelProfile?._id]) {
+                setSubscribedTo(subscribedToCache[channelProfile._id]);
+                return;
+            }
+            try {
+                setIsLoading(true);
+                // Use a dedicated API to get the latest subscriptions with state
+                const response = await axios.get(
+                    `http://localhost:8000/api/v1/subscriptions/get-subscribed-channels/${channelProfile._id}`,
+                    { withCredentials: true }
+                );
+                // Expecting response.data.data to be an array of channels with subscription state
+                const subs = response.data.data || [];
+                setSubscribedTo(subs);
+                setSubscribedToCache((prev) => ({
+                    ...prev,
+                    [channelProfile._id]: subs,
+                }));
+            } catch (error) {
+                setErrorMessage(
+                    "Failed to load subscriptions. Please try again."
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [channelProfile?._id, subscribedToCache]
+    );
 
     const createTweet = async () => {
         if (!newTweetContent.trim()) return;
@@ -239,10 +303,95 @@ const UserProfile = () => {
             } else {
                 setIsSubscribed((prev) => !prev); // fallback toggle
             }
-            console.log(response.data.data);
         } catch (error) {
             setErrorMessage("Failed to toggle subscription. Please try again.");
             console.log(error?.response?.data?.message);
+        }
+    };
+
+    const handleToggleSubscriptionForUser = async (userId, type) => {
+        try {
+            await axios.patch(
+                `http://localhost:8000/api/v1/subscriptions/toggle-subscription/${userId}`,
+                {},
+                { withCredentials: true }
+            );
+            if (type === "subscribers") {
+                // Update the button state locally in Subscribers tab
+                setSubscribers((prev) =>
+                    prev.map((u) =>
+                        u._id === userId
+                            ? {
+                                  ...u,
+                                  subscribedToSubscriber:
+                                      !u.subscribedToSubscriber,
+                              }
+                            : u
+                    )
+                );
+                setSubscribersCache((prev) => ({
+                    ...prev,
+                    [channelProfile._id]: (prev[channelProfile._id] || []).map(
+                        (u) =>
+                            u._id === userId
+                                ? {
+                                      ...u,
+                                      subscribedToSubscriber:
+                                          !u.subscribedToSubscriber,
+                                  }
+                                : u
+                    ),
+                }));
+                // Always refresh Subscribed To tab to reflect new state
+                fetchSubscribedTo(true);
+            } else if (type === "subscribedTo") {
+                // Update the button state locally in Subscribed To tab
+                setSubscribedTo((prev) =>
+                    prev.map((u) =>
+                        u._id === userId
+                            ? {
+                                  ...u,
+                                  subscribedToSubscriber:
+                                      !u.subscribedToSubscriber,
+                              }
+                            : u
+                    )
+                );
+                setSubscribedToCache((prev) => ({
+                    ...prev,
+                    [channelProfile._id]: (prev[channelProfile._id] || []).map(
+                        (u) =>
+                            u._id === userId
+                                ? {
+                                      ...u,
+                                      subscribedToSubscriber:
+                                          !u.subscribedToSubscriber,
+                                  }
+                                : u
+                    ),
+                }));
+                // Also update Subscribers tab button state if present
+                setSubscribers((prev) =>
+                    prev.map((u) =>
+                        u._id === userId
+                            ? { ...u, subscribedToSubscriber: false }
+                            : u
+                    )
+                );
+                setSubscribersCache((prev) => ({
+                    ...prev,
+                    [channelProfile._id]: (prev[channelProfile._id] || []).map(
+                        (u) =>
+                            u._id === userId
+                                ? { ...u, subscribedToSubscriber: false }
+                                : u
+                    ),
+                }));
+                // Always refresh Subscribed To tab to reflect new state
+                fetchSubscribedTo(true);
+            }
+        } catch (err) {
+            setErrorMessage("Failed to update subscription. Please try again.");
         }
     };
 
@@ -262,10 +411,21 @@ const UserProfile = () => {
                 fetchTweets();
             } else if (activeTab === "videos") {
                 fetchVideos();
+            } else if (activeTab === "subscribed") {
+                fetchSubscribers();
+            } else if (activeTab === "subscribers") {
+                fetchSubscribedTo();
             }
         }
         // eslint-disable-next-line
-    }, [activeTab, channelProfile?._id, fetchTweets, fetchVideos]);
+    }, [
+        activeTab,
+        channelProfile?._id,
+        fetchTweets,
+        fetchVideos,
+        fetchSubscribers,
+        fetchSubscribedTo,
+    ]);
 
     return (
         <div className="min-h-screen py-2 px-15 bg-gray-900 text-white">
@@ -373,7 +533,17 @@ const UserProfile = () => {
                             } px-4 py-2 rounded text-white`}
                             onClick={() => setActiveTab("subscribed")}
                         >
-                            Subscribed
+                            Subscribers
+                        </button>
+                        <button
+                            className={`${
+                                activeTab === "subscribers"
+                                    ? "bg-purple-600"
+                                    : "bg-gray-700"
+                            } px-4 py-2 rounded text-white`}
+                            onClick={() => setActiveTab("subscribers")}
+                        >
+                            Subscribed To
                         </button>
                     </div>
                 </div>
@@ -487,7 +657,7 @@ const UserProfile = () => {
                                     </div>
                                 </div>
                             ))}
-                        {errorMessage && (
+                        {errorMessage && activeTab === "tweets" && (
                             <p className="text-red-500">{errorMessage}</p>
                         )}
                     </div>
@@ -504,6 +674,138 @@ const UserProfile = () => {
                                 <VideoCard key={video._id} video={video} />
                             ))}
                         </div>
+                        {errorMessage && activeTab === "videos" && (
+                            <p className="text-red-500 mt-2">{errorMessage}</p>
+                        )}
+                    </div>
+                )}
+                {activeTab === "subscribed" && (
+                    <div>
+                        {isLoading && <p>Loading subscribers...</p>}
+                        {!isLoading && subscribers.length === 0 && (
+                            <p>No subscribers found.</p>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {subscribers.map((sub) => (
+                                <div
+                                    key={sub._id}
+                                    className="flex items-center gap-4 bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition"
+                                >
+                                    <img
+                                        src={
+                                            sub.avatar ||
+                                            "https://via.placeholder.com/40"
+                                        }
+                                        alt={sub.fullName || "User Avatar"}
+                                        className="w-12 h-12 rounded-full object-cover"
+                                        onClick={() =>
+                                            navigate(`/profile/${sub.username}`)
+                                        }
+                                    />
+                                    <div
+                                        className="flex-1"
+                                        onClick={() =>
+                                            navigate(`/profile/${sub.username}`)
+                                        }
+                                    >
+                                        <div className="font-semibold text-white">
+                                            {sub.fullName}
+                                        </div>
+                                        <div className="text-gray-400 text-sm">
+                                            @{sub.username}
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                            Subscribers:{" "}
+                                            {sub.subscribersCount || 0}
+                                        </div>
+                                    </div>
+                                    <button
+                                        className={`ml-2 px-3 py-1 rounded text-white ${
+                                            sub.subscribedToSubscriber
+                                                ? "bg-gray-600 hover:bg-gray-700"
+                                                : "bg-purple-600 hover:bg-purple-700"
+                                        }`}
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            await handleToggleSubscriptionForUser(
+                                                sub._id,
+                                                "subscribers"
+                                            );
+                                        }}
+                                    >
+                                        {sub.subscribedToSubscriber
+                                            ? "Subscribed"
+                                            : "Subscribe"}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        {errorMessage && activeTab === "subscribed" && (
+                            <p className="text-red-500 mt-2">{errorMessage}</p>
+                        )}
+                    </div>
+                )}
+                {activeTab === "subscribers" && (
+                    <div>
+                        {isLoading && <p>Loading subscriptions...</p>}
+                        {!isLoading && subscribedTo.length === 0 && (
+                            <p>No subscriptions found.</p>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {subscribedTo.map((sub) => (
+                                <div
+                                    key={sub._id}
+                                    id={sub._id}
+                                    className="flex items-center gap-4 bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition"
+                                >
+                                    <img
+                                        src={
+                                            sub.avatar ||
+                                            "https://via.placeholder.com/40"
+                                        }
+                                        alt={sub.fullName || "User Avatar"}
+                                        className="w-12 h-12 rounded-full object-cover"
+                                        onClick={() =>
+                                            navigate(`/profile/${sub.username}`)
+                                        }
+                                    />
+                                    <div
+                                        className="flex-1"
+                                        onClick={() =>
+                                            navigate(`/profile/${sub.username}`)
+                                        }
+                                    >
+                                        <div className="font-semibold text-white">
+                                            {sub.fullName}
+                                        </div>
+                                        <div className="text-gray-400 text-sm">
+                                            @{sub.username}
+                                        </div>
+                                    </div>
+                                    {userDetails._id === channelProfile._id && (
+                                        <button
+                                            className={`ml-2 px-3 py-1 rounded text-white ${
+                                                sub.subscribedToSubscriber
+                                                    ? "bg-gray-600 hover:bg-gray-700"
+                                                    : "bg-purple-600 hover:bg-purple-700"
+                                            }`}
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                await handleToggleSubscriptionForUser(
+                                                    sub._id,
+                                                    "subscribedTo"
+                                                );
+                                            }}
+                                        >
+                                            Unsubscribe
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        {errorMessage && activeTab === "subscribers" && (
+                            <p className="text-red-500 mt-2">{errorMessage}</p>
+                        )}
                     </div>
                 )}
             </div>

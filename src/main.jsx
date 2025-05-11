@@ -22,6 +22,7 @@ import {
     UploadVideo,
     UserProfile,
     VideoCart,
+    Subscribers,
 } from "./components/index.js";
 import { Provider } from "react-redux";
 import { store } from "./app/store.js";
@@ -44,6 +45,7 @@ const router = createBrowserRouter(
                 element={<PlayBack />}
                 loader={({ params }) => fetchPlayBackData(params.videoId)}
             />
+            <Route path="subscribers" element={<Subscribers />} />
         </Route>
     )
 );
