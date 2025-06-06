@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLoaderData } from "react-router-dom";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import VideoCard from "./VideoCard";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
 
 function timeAgo(dateString) {
     const now = new Date();
@@ -184,7 +186,7 @@ const PlayBack = () => {
                         </div>
 
                         {/* Comment Section */}
-                        <div className="mt-6">
+                        <div className="mt-6 flex align-middle justify-center gap-2 w-full max-w-xl mx-auto">
                             <input
                                 type="text"
                                 placeholder="Add a comment..."
@@ -195,13 +197,23 @@ const PlayBack = () => {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") handleAddComment();
                                 }}
-                                className="w-full p-2 bg-gray-800 text-white rounded-lg"
+                                className="w-full h-12 p-4 bg-gray-800 text-white rounded-l-lg border-t-2 border-b-2 border-l-2 border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-md placeholder-gray-400"
+                                style={{ maxWidth: "500px" }}
                             />
                             <button
                                 onClick={handleAddComment}
-                                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg"
+                                className="h-12 w-12 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-full border-2 border-gray-700 shadow-md hover:from-blue-600 hover:to-blue-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-95 flex items-center justify-center"
+                                style={{
+                                    minWidth: "48px",
+                                    minHeight: "48px",
+                                    padding: 0,
+                                }}
                             >
-                                Post
+                                <FontAwesomeIcon
+                                    icon={faPaperPlane}
+                                    size="lg"
+                                />
+                                <span className="sr-only">Post</span>
                             </button>
                             <div className="mt-4 space-y-4">
                                 {comments.map((comment) => (
