@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import VideoCard from "./VideoCard";
+import CommentSection from "./CommentSection";
 
 function timeAgo(dateString) {
     const now = new Date();
@@ -39,8 +40,10 @@ const UserProfile = () => {
     const [subscribersCache, setSubscribersCache] = useState({});
     const [subscribedTo, setSubscribedTo] = useState([]);
     const [subscribedToCache, setSubscribedToCache] = useState({});
+    const [tweetMenuOpen, setTweetMenuOpen] = useState({}); // { [tweetId]: true/false }
 
     const navigate = useNavigate();
+    const tweetMenuRefs = useRef({});
 
     useEffect(() => {
         if (!isLoggedIn) {
@@ -344,6 +347,8 @@ const UserProfile = () => {
                 }));
                 // Always refresh Subscribed To tab to reflect new state
                 fetchSubscribedTo(true);
+                // Refresh subscribers list
+                fetchSubscribers(true);
             } else if (type === "subscribedTo") {
                 // Update the button state locally in Subscribed To tab
                 setSubscribedTo((prev) =>
@@ -370,28 +375,14 @@ const UserProfile = () => {
                                 : u
                     ),
                 }));
-                // Also update Subscribers tab button state if present
-                setSubscribers((prev) =>
-                    prev.map((u) =>
-                        u._id === userId
-                            ? { ...u, subscribedToSubscriber: false }
-                            : u
-                    )
-                );
-                setSubscribersCache((prev) => ({
-                    ...prev,
-                    [channelProfile._id]: (prev[channelProfile._id] || []).map(
-                        (u) =>
-                            u._id === userId
-                                ? { ...u, subscribedToSubscriber: false }
-                                : u
-                    ),
-                }));
-                // Always refresh Subscribed To tab to reflect new state
+                // Always refresh Subscribers tab to reflect new state
+                fetchSubscribers(true);
+                // Refresh subscribedTo list
                 fetchSubscribedTo(true);
             }
-        } catch (err) {
-            setErrorMessage("Failed to update subscription. Please try again.");
+        } catch (error) {
+            setErrorMessage("Failed to toggle subscription. Please try again.");
+            console.log(error?.response?.data?.message);
         }
     };
 
@@ -426,6 +417,22 @@ const UserProfile = () => {
         fetchSubscribers,
         fetchSubscribedTo,
     ]);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            Object.keys(tweetMenuRefs.current).forEach((id) => {
+                if (
+                    tweetMenuRefs.current[id] &&
+                    !tweetMenuRefs.current[id].contains(event.target)
+                ) {
+                    setTweetMenuOpen((prev) => ({ ...prev, [id]: false }));
+                }
+            });
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <div className="min-h-screen py-2 px-15 bg-gray-900 text-white">
@@ -492,12 +499,17 @@ const UserProfile = () => {
                         </div>
                         {!isOwnProfile && (
                             <button
-                                className={`${
+                                className={`$${
                                     isSubscribed
                                         ? "bg-gray-600"
                                         : "bg-purple-600 hover:bg-purple-700"
                                 } px-4 py-2 rounded text-white`}
-                                onClick={handleToggleSubscription}
+                                onClick={async () => {
+                                    await handleToggleSubscriptionForUser(
+                                        channelProfile._id,
+                                        "subscribedTo"
+                                    );
+                                }}
                             >
                                 {isSubscribed ? "Subscribed" : "Subscribe"}
                             </button>
@@ -606,6 +618,103 @@ const UserProfile = () => {
                                                     ? timeAgo(tweet.createdAt)
                                                     : ""}
                                             </span>
+                                            {isOwnProfile &&
+                                                tweet.owner._id ===
+                                                    channelProfile?._id && (
+                                                    <div
+                                                        className="relative"
+                                                        ref={(el) =>
+                                                            (tweetMenuRefs.current[
+                                                                tweet._id
+                                                            ] = el)
+                                                        }
+                                                    >
+                                                        <button
+                                                            className="ml-2 p-1 rounded-full hover:bg-gray-700 focus:outline-none"
+                                                            onClick={() =>
+                                                                setTweetMenuOpen(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        [tweet._id]:
+                                                                            !prev[
+                                                                                tweet
+                                                                                    ._id
+                                                                            ],
+                                                                    })
+                                                                )
+                                                            }
+                                                        >
+                                                            <svg
+                                                                width="20"
+                                                                height="20"
+                                                                fill="currentColor"
+                                                                className="text-gray-400"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <circle
+                                                                    cx="4"
+                                                                    cy="10"
+                                                                    r="2"
+                                                                />
+                                                                <circle
+                                                                    cx="10"
+                                                                    cy="10"
+                                                                    r="2"
+                                                                />
+                                                                <circle
+                                                                    cx="16"
+                                                                    cy="10"
+                                                                    r="2"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                        {tweetMenuOpen[
+                                                            tweet._id
+                                                        ] && (
+                                                            <div className="absolute right-0 mt-2 w-28 bg-gray-900 border border-gray-700 rounded shadow-lg z-10">
+                                                                <button
+                                                                    className="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-800"
+                                                                    onClick={() => {
+                                                                        setTweetMenuOpen(
+                                                                            (
+                                                                                prev
+                                                                            ) => ({
+                                                                                ...prev,
+                                                                                [tweet._id]: false,
+                                                                            })
+                                                                        );
+                                                                        setEditingTweetId(
+                                                                            tweet._id
+                                                                        );
+                                                                        setEditingContent(
+                                                                            tweet.content
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800"
+                                                                    onClick={() => {
+                                                                        setTweetMenuOpen(
+                                                                            (
+                                                                                prev
+                                                                            ) => ({
+                                                                                ...prev,
+                                                                                [tweet._id]: false,
+                                                                            })
+                                                                        );
+                                                                        deleteTweet(
+                                                                            tweet._id
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                         </div>
                                         {editingTweetId === tweet._id ? (
                                             <TweetEditInput
@@ -623,35 +732,6 @@ const UserProfile = () => {
                                                 <p className="text-sm text-gray-200 mb-2">
                                                     {tweet.content}
                                                 </p>
-                                                {isOwnProfile &&
-                                                    tweet.owner._id ===
-                                                        channelProfile?._id && (
-                                                        <div className="flex gap-2 mt-1">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingTweetId(
-                                                                        tweet._id
-                                                                    );
-                                                                    setEditingContent(
-                                                                        tweet.content
-                                                                    );
-                                                                }}
-                                                                className="text-sm text-purple-500 hover:underline"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    deleteTweet(
-                                                                        tweet._id
-                                                                    )
-                                                                }
-                                                                className="text-sm text-red-500 hover:underline"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    )}
                                             </>
                                         )}
                                     </div>
@@ -689,6 +769,7 @@ const UserProfile = () => {
                             {subscribers.map((sub) => (
                                 <div
                                     key={sub._id}
+                                    id={sub._id}
                                     className="flex items-center gap-4 bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition"
                                 >
                                     <img

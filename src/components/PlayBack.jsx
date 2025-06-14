@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import VideoCard from "./VideoCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
+import CommentSection from "./CommentSection";
 
 function timeAgo(dateString) {
     const now = new Date();
@@ -26,20 +27,15 @@ const PlayBack = () => {
     const { videoId } = useParams();
     const [video, setVideo] = useState(null);
     const [relatedVideos, setRelatedVideos] = useState([]);
-    const [comments, setComments] = useState([]);
-    const [commentContent, setCommentContent] = useState("");
-    const [editingCommentId, setEditingCommentId] = useState(null);
-    const [editedContent, setEditedContent] = useState("");
     const videoRef = useRef(null);
 
-    const { playbackVideo, videoComments, otherVideos } = useLoaderData();
+    const { playbackVideo, otherVideos } = useLoaderData();
     const { userDetails, isLoggedIn } = useSelector((state) => state.auth);
 
     useEffect(() => {
         setVideo(playbackVideo);
-        setComments(videoComments);
         setRelatedVideos(otherVideos);
-    }, [playbackVideo, videoComments, otherVideos]);
+    }, [playbackVideo, otherVideos]);
 
     useEffect(() => {
         if (!isLoggedIn) {
@@ -49,78 +45,6 @@ const PlayBack = () => {
 
     const handleRelatedVideoClick = (relatedVideo) => {
         navigate(`/playback/${relatedVideo._id}`);
-    };
-
-    const handleAddComment = async () => {
-        if (!commentContent) return;
-        try {
-            const response = await axios.post(
-                `http://localhost:8000/api/v1/comments/add-comment/${videoId}`,
-                { content: commentContent },
-                {
-                    withCredentials: true,
-                }
-            );
-            setComments([response.data.data, ...comments]);
-            setCommentContent("");
-        } catch (error) {
-            console.error("Error adding comment:", error);
-        }
-    };
-
-    const handleUpdateComment = async (commentId, newContent) => {
-        try {
-            const response = await axios.patch(
-                `http://localhost:8000/api/v1/comments/update-comment/${commentId}`,
-                { content: newContent },
-                {
-                    withCredentials: true,
-                }
-            );
-
-            if (response.data.success) {
-                setComments(
-                    comments.map((comment) =>
-                        comment._id === commentId
-                            ? { ...comment, content: newContent }
-                            : comment
-                    )
-                );
-                setEditingCommentId(null);
-                setEditedContent("");
-            } else {
-                throw new Error("Failed to update comment");
-            }
-        } catch (error) {
-            console.error("Error updating comment:", error);
-        }
-    };
-
-    const handleDeleteComment = async (commentId) => {
-        try {
-            await axios.post(
-                `http://localhost:8000/api/v1/comments/delete-comment/${commentId}`,
-                {},
-                {
-                    withCredentials: true,
-                }
-            );
-            setComments(
-                comments.filter((comment) => comment._id !== commentId)
-            );
-        } catch (error) {
-            console.error("Error deleting comment:", error);
-        }
-    };
-
-    const handleEditClick = (commentId, currentContent) => {
-        setEditingCommentId(commentId);
-        setEditedContent(currentContent);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingCommentId(null);
-        setEditedContent("");
     };
 
     if (!video)
@@ -186,152 +110,8 @@ const PlayBack = () => {
                         </div>
 
                         {/* Comment Section */}
-                        <div className="mt-6 flex align-middle justify-center gap-2 w-full max-w-xl mx-auto">
-                            <input
-                                type="text"
-                                placeholder="Add a comment..."
-                                value={commentContent}
-                                onChange={(e) =>
-                                    setCommentContent(e.target.value)
-                                }
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleAddComment();
-                                }}
-                                className="w-full h-12 p-4 bg-gray-800 text-white rounded-l-lg border-t-2 border-b-2 border-l-2 border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-md placeholder-gray-400"
-                                style={{ maxWidth: "500px" }}
-                            />
-                            <button
-                                onClick={handleAddComment}
-                                className="h-12 w-12 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-full border-2 border-gray-700 shadow-md hover:from-blue-600 hover:to-blue-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-95 flex items-center justify-center"
-                                style={{
-                                    minWidth: "48px",
-                                    minHeight: "48px",
-                                    padding: 0,
-                                }}
-                            >
-                                <FontAwesomeIcon
-                                    icon={faPaperPlane}
-                                    size="lg"
-                                />
-                                <span className="sr-only">Post</span>
-                            </button>
-                            <div className="mt-4 space-y-4">
-                                {comments.map((comment) => (
-                                    <div
-                                        key={comment._id}
-                                        className="flex items-start gap-4 bg-gray-800 rounded-lg p-4 mt-4 shadow-lg"
-                                    >
-                                        {/* Avatar */}
-                                        <img
-                                            src={
-                                                comment.userDetails?.avatar ||
-                                                "https://via.placeholder.com/40"
-                                            }
-                                            alt={
-                                                comment.userDetails?.fullName ||
-                                                "User Avatar"
-                                            }
-                                            className="w-10 h-10 rounded-full object-cover"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold text-white text-base">
-                                                    {comment.userDetails
-                                                        ?.fullName ||
-                                                        "User Name"}
-                                                </span>
-                                                <span className="text-gray-400 text-xs">
-                                                    •{" "}
-                                                    {comment.createdAt
-                                                        ? timeAgo(
-                                                              comment.createdAt
-                                                          )
-                                                        : ""}
-                                                </span>
-                                            </div>
-                                            {editingCommentId ===
-                                            comment._id ? (
-                                                <div className="flex flex-col gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={editedContent}
-                                                        onChange={(e) =>
-                                                            setEditedContent(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        onKeyDown={(e) => {
-                                                            if (
-                                                                e.key ===
-                                                                "Enter"
-                                                            )
-                                                                handleUpdateComment(
-                                                                    editingCommentId,
-                                                                    editedContent
-                                                                );
-                                                        }}
-                                                        className="w-full px-2 py-1 bg-gray-700 text-white rounded"
-                                                    />
-                                                    <div className="flex gap-2 mt-1">
-                                                        <button
-                                                            onClick={() =>
-                                                                handleUpdateComment(
-                                                                    comment._id,
-                                                                    editedContent
-                                                                )
-                                                            }
-                                                            className="text-green-500"
-                                                        >
-                                                            Save
-                                                        </button>
-                                                        <button
-                                                            onClick={
-                                                                handleCancelEdit
-                                                            }
-                                                            className="text-red-500"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <p className="text-sm text-gray-200 mb-2">
-                                                        {comment.content}
-                                                    </p>
-                                                    {comment.userDetails
-                                                        ?.username ===
-                                                        userDetails.username && (
-                                                        <div className="flex gap-2 mt-1">
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleEditClick(
-                                                                        comment._id,
-                                                                        comment.content
-                                                                    )
-                                                                }
-                                                                className="text-sm text-purple-500 hover:underline"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDeleteComment(
-                                                                        comment._id
-                                                                    )
-                                                                }
-                                                                className="text-sm text-red-500 hover:underline"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                        <div className="mt-6">
+                            <CommentSection videoId={video._id} />
                         </div>
                     </div>
                 </div>
