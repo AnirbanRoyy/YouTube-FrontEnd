@@ -14,6 +14,7 @@ import { fetchVideos } from "./VideosCart";
 import { fetchSelfVideos } from "./Admin";
 import Settings from "./Settings";
 import Subscribers from "./Subscribers";
+import Playlist from "./Playlist";
 
 export {
     Admin,
@@ -31,5 +32,6 @@ export {
     VideoCart,
     fetchVideos,
     fetchSelfVideos,
-    Subscribers
+    Subscribers,
+    Playlist,
 };

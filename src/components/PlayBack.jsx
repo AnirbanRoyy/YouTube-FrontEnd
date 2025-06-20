@@ -6,6 +6,7 @@ import VideoCard from "./VideoCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
 import CommentSection from "./CommentSection";
+import Playlist from "./Playlist";
 
 function timeAgo(dateString) {
     const now = new Date();
@@ -28,6 +29,14 @@ const PlayBack = () => {
     const [video, setVideo] = useState(null);
     const [relatedVideos, setRelatedVideos] = useState([]);
     const videoRef = useRef(null);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [userPlaylists, setUserPlaylists] = useState([]);
+    const [playlistLoading, setPlaylistLoading] = useState(false);
+    const [playlistError, setPlaylistError] = useState("");
+    const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
+    const [newPlaylistName, setNewPlaylistName] = useState("");
+    const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
+    const [addStatus, setAddStatus] = useState("");
 
     const { playbackVideo, otherVideos } = useLoaderData();
     const { userDetails, isLoggedIn } = useSelector((state) => state.auth);
@@ -47,6 +56,71 @@ const PlayBack = () => {
         navigate(`/playback/${relatedVideo._id}`);
     };
 
+    // Fetch user's playlists
+    const fetchUserPlaylists = async () => {
+        if (!userDetails?._id) return;
+        setPlaylistLoading(true);
+        setPlaylistError("");
+        try {
+            const res = await axios.get(
+                `http://localhost:8000/api/v1/users/${userDetails._id}/playlists`,
+                { withCredentials: true }
+            );
+            setUserPlaylists(res.data.data || []);
+        } catch (err) {
+            setPlaylistError("Failed to load playlists.");
+        } finally {
+            setPlaylistLoading(false);
+        }
+    };
+
+    // Open modal and fetch playlists
+    const handleOpenPlaylistModal = () => {
+        setShowPlaylistModal(true);
+        fetchUserPlaylists();
+        setAddStatus("");
+        setSelectedPlaylistId("");
+        setNewPlaylistName("");
+        setNewPlaylistDesc("");
+    };
+
+    // Add video to selected playlist
+    const handleAddToPlaylist = async (e) => {
+        e.preventDefault();
+        setAddStatus("");
+        try {
+            if (selectedPlaylistId) {
+                // Update existing playlist
+                await axios.patch(
+                    `http://localhost:8000/api/v1/playlists/${selectedPlaylistId}`,
+                    { video: [video._id] },
+                    { withCredentials: true }
+                );
+                setAddStatus("Added to playlist!");
+            } else if (newPlaylistName) {
+                // Create new playlist
+                await axios.post(
+                    `http://localhost:8000/api/v1/playlists`,
+                    {
+                        name: newPlaylistName,
+                        description: newPlaylistDesc,
+                        video: [video._id],
+                        owner: userDetails._id,
+                    },
+                    { withCredentials: true }
+                );
+                setAddStatus("Playlist created and video added!");
+            } else {
+                setAddStatus("Please select or enter a playlist name.");
+                return;
+            }
+            fetchUserPlaylists();
+            setShowPlaylistModal(false); // Close modal after successful add
+        } catch (err) {
+            setAddStatus("Failed to add to playlist.");
+        }
+    };
+
     if (!video)
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -62,6 +136,15 @@ const PlayBack = () => {
                     <h1 className="text-3xl font-bold text-gray-100 text-center mb-4">
                         {video.title || "Untitled Video"}
                     </h1>
+                    {/* Add to Playlist Button - moved just below the title for visibility */}
+                    <div className="flex justify-end mb-2">
+                        <button
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow-lg"
+                            onClick={handleOpenPlaylistModal}
+                        >
+                            Add to Playlist
+                        </button>
+                    </div>
                     <div className="max-w-screen-md mx-auto rounded-lg overflow-hidden shadow-lg p-4">
                         {/* Responsive 16:9 Aspect Ratio Container */}
                         <div
@@ -141,6 +224,93 @@ const PlayBack = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Playlist Modal */}
+            {showPlaylistModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                    <form
+                        className="bg-gray-800 rounded-lg p-8 w-full max-w-md shadow-lg"
+                        onSubmit={handleAddToPlaylist}
+                    >
+                        <h2 className="text-2xl font-bold mb-4 text-white">
+                            Add to Playlist
+                        </h2>
+                        {playlistLoading ? (
+                            <p className="text-gray-300">
+                                Loading playlists...
+                            </p>
+                        ) : (
+                            <>
+                                <label className="block mb-2 text-gray-300">
+                                    Select Playlist
+                                </label>
+                                <select
+                                    className="w-full mb-4 px-3 py-2 rounded bg-gray-700 text-white focus:outline-none"
+                                    value={selectedPlaylistId}
+                                    onChange={(e) =>
+                                        setSelectedPlaylistId(e.target.value)
+                                    }
+                                >
+                                    <option value="">-- Select --</option>
+                                    {userPlaylists.map((pl) => (
+                                        <option key={pl._id} value={pl._id}>
+                                            {pl.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="text-center text-gray-400 mb-2">
+                                    or
+                                </div>
+                                <label className="block mb-2 text-gray-300">
+                                    New Playlist Name
+                                </label>
+                                <input
+                                    className="w-full mb-2 px-3 py-2 rounded bg-gray-700 text-white focus:outline-none"
+                                    type="text"
+                                    value={newPlaylistName}
+                                    onChange={(e) =>
+                                        setNewPlaylistName(e.target.value)
+                                    }
+                                    placeholder="Enter new playlist name"
+                                />
+                                <label className="block mb-2 text-gray-300">
+                                    Description (optional)
+                                </label>
+                                <input
+                                    className="w-full mb-4 px-3 py-2 rounded bg-gray-700 text-white focus:outline-none"
+                                    type="text"
+                                    value={newPlaylistDesc}
+                                    onChange={(e) =>
+                                        setNewPlaylistDesc(e.target.value)
+                                    }
+                                    placeholder="Enter description"
+                                />
+                            </>
+                        )}
+                        {addStatus && (
+                            <p className="text-center text-green-400 mb-2">
+                                {addStatus}
+                            </p>
+                        )}
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
+                                onClick={() => setShowPlaylistModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
+                                disabled={playlistLoading}
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 };

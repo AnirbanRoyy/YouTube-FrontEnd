@@ -114,6 +114,19 @@ const SideBar = ({ onToggle }) => {
                 </li>
                 <li>
                     <NavLink
+                        to="/playlists"
+                        className={({ isActive }) =>
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
+                            }`
+                        }
+                    >
+                        <FaUsers size={20} />
+                        {!isCollapsed && <span>Playlists</span>}
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink
                         to="/settings"
                         className={({ isActive }) =>
                             `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
