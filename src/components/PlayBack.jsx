@@ -62,16 +62,22 @@ const PlayBack = () => {
                     <h1 className="text-3xl font-bold text-gray-100 text-center mb-4">
                         {video.title || "Untitled Video"}
                     </h1>
-                    <div className="max-w-screen-md mx-auto  rounded-lg overflow-hidden shadow-lg p-4">
-                        <video
-                            ref={videoRef}
-                            src={video.videoFile}
-                            controls
-                            className="w-full h-auto rounded-lg"
-                            muted={false}
+                    <div className="max-w-screen-md mx-auto rounded-lg overflow-hidden shadow-lg p-4">
+                        {/* Responsive 16:9 Aspect Ratio Container */}
+                        <div
+                            className="relative w-full"
+                            style={{ paddingTop: "56.25%" }}
                         >
-                            Your browser does not support the video tag.
-                        </video>
+                            <video
+                                ref={videoRef}
+                                src={video.videoFile}
+                                controls
+                                className="absolute top-0 left-0 w-full h-full rounded-lg object-cover bg-black"
+                                muted={false}
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
 
                         {/* Video Details */}
                         <div className="mt-4 text-white">
