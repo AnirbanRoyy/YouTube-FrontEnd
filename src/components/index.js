@@ -15,6 +15,8 @@ import { fetchSelfVideos } from "./Admin";
 import Settings from "./Settings";
 import Subscribers from "./Subscribers";
 import Playlist from "./Playlist";
+import WatchHistory from "./WatchHistory";
+import WatchLater from "./WatchLater";
 
 export {
     Admin,
@@ -34,4 +36,5 @@ export {
     fetchSelfVideos,
     Subscribers,
     Playlist,
+    WatchHistory
 };

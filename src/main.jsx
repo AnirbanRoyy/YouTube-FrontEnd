@@ -23,10 +23,12 @@ import {
     UserProfile,
     VideoCart,
     Subscribers,
-    Playlist
+    Playlist,
+    WatchHistory
 } from "./components/index.js";
 import { Provider } from "react-redux";
 import { store } from "./app/store.js";
+import WatchLater from "./components/WatchLater.jsx";
 
 const router = createBrowserRouter(
     createRoutesFromElements(
@@ -48,6 +50,8 @@ const router = createBrowserRouter(
             />
             <Route path="subscribers" element={<Subscribers />} />
             <Route path="playlists" element={<Playlist />} />
+            <Route path="history" element={<WatchHistory />} />
+            <Route path="watch-later" element={<WatchLater />} />
         </Route>
     )
 );

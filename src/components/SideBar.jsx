@@ -10,6 +10,8 @@ import {
     FaUsers,
     FaBars,
     FaVideo,
+    FaHistory,
+    FaClock,
 } from "react-icons/fa";
 
 const SideBar = ({ onToggle }) => {
@@ -71,6 +73,32 @@ const SideBar = ({ onToggle }) => {
                 </li>
                 <li>
                     <NavLink
+                        to="/history"
+                        className={({ isActive }) =>
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
+                            }`
+                        }
+                    >
+                        <FaHistory size={20} />
+                        {!isCollapsed && <span>Watch History</span>}
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink
+                        to="/watch-later"
+                        className={({ isActive }) =>
+                            `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
+                                isActive ? "bg-slate-600 bg-opacity-50" : ""
+                            }`
+                        }
+                    >
+                        <FaClock size={20} />
+                        {!isCollapsed && <span>Watch Later</span>}
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink
                         to="/admin"
                         className={({ isActive }) =>
                             `flex items-center gap-4 p-3 text-slate-100 rounded hover:bg-gray-800 ${
@@ -121,7 +149,7 @@ const SideBar = ({ onToggle }) => {
                             }`
                         }
                     >
-                        <FaUsers size={20} />
+                        <FaFolder size={20} />
                         {!isCollapsed && <span>Playlists</span>}
                     </NavLink>
                 </li>

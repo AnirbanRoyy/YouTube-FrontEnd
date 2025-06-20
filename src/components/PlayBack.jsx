@@ -121,6 +121,73 @@ const PlayBack = () => {
         }
     };
 
+    // --- WATCH LATER LOGIC ---
+    const [watchLaterLoading, setWatchLaterLoading] = useState(false);
+    const [watchLaterSuccess, setWatchLaterSuccess] = useState(false);
+    const [watchLaterError, setWatchLaterError] = useState("");
+    const handleWatchLater = async () => {
+        setWatchLaterLoading(true);
+        setWatchLaterSuccess(false);
+        setWatchLaterError("");
+        if (!userDetails?._id) {
+            navigate("/login");
+            return;
+        }
+        try {
+            // 1. Get all user playlists
+            const playlistsRes = await axios.get(
+                `http://localhost:8000/api/v1/users/${userDetails._id}/playlists`,
+                { withCredentials: true }
+            );
+            let watchLater = playlistsRes.data.data.find(
+                (pl) => pl.name?.toLowerCase() === "watch later"
+            );
+            // 2. If not exist, create it
+            if (!watchLater) {
+                await axios.post(
+                    `http://localhost:8000/api/v1/playlists/`,
+                    {
+                        name: "Watch Later",
+                        description: "Videos you want to watch later",
+                        video: [videoId],
+                        owner: userDetails._id,
+                    },
+                    { withCredentials: true }
+                );
+                setWatchLaterSuccess(true);
+                setWatchLaterLoading(false);
+                return;
+            }
+            // 3. If already in playlist, show message
+            if (
+                watchLater.video &&
+                watchLater.video.some((v) => v._id === videoId || v === videoId)
+            ) {
+                setWatchLaterError("Already in Watch Later");
+                setWatchLaterLoading(false);
+                return;
+            }
+            // 4. Otherwise, PATCH to add videoId
+            const updatedVideos = [
+                ...watchLater.video.map((v) =>
+                    typeof v === "string" ? v : v._id
+                ),
+                videoId,
+            ];
+            await axios.patch(
+                `http://localhost:8000/api/v1/playlists/${watchLater._id}`,
+                { video: updatedVideos },
+                { withCredentials: true }
+            );
+            setWatchLaterSuccess(true);
+        } catch (err) {
+            setWatchLaterError("Failed to add to Watch Later");
+            console.error(err);
+        } finally {
+            setWatchLaterLoading(false);
+        }
+    };
+
     if (!video)
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -137,14 +204,51 @@ const PlayBack = () => {
                         {video.title || "Untitled Video"}
                     </h1>
                     {/* Add to Playlist Button - moved just below the title for visibility */}
-                    <div className="flex justify-end mb-2">
+                    <div className="flex justify-end mb-2 gap-2">
                         <button
                             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow-lg"
                             onClick={handleOpenPlaylistModal}
                         >
                             Add to Playlist
                         </button>
+                        <button
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2"
+                            onClick={handleWatchLater}
+                            disabled={watchLaterLoading}
+                        >
+                            {watchLaterLoading ? (
+                                <span className="loader w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            ) : (
+                                <>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={2}
+                                        stroke="currentColor"
+                                        className="w-5 h-5"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M12 4.5v15m7.5-7.5h-15"
+                                        />
+                                    </svg>
+                                    Watch Later
+                                </>
+                            )}
+                        </button>
                     </div>
+                    {watchLaterSuccess && (
+                        <div className="text-green-400 text-right mb-2">
+                            Added to Watch Later!
+                        </div>
+                    )}
+                    {watchLaterError && (
+                        <div className="text-red-400 text-right mb-2">
+                            {watchLaterError}
+                        </div>
+                    )}
                     <div className="max-w-screen-md mx-auto rounded-lg overflow-hidden shadow-lg p-4">
                         {/* Responsive 16:9 Aspect Ratio Container */}
                         <div
